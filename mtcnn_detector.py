@@ -463,7 +463,7 @@ class MtcnnDetector(object):
 
         return tran_m, tran_b
 
-    def extract_image_chips(self, img, points, desired_size=256, padding=0):
+    def extract_image_chips(self, img, points, desired_size=256, padding=0, text=""):
         """
             crop and align face
         Parameters:
@@ -478,12 +478,30 @@ class MtcnnDetector(object):
             crop_imgs: list, n
                 cropped and aligned faces 
         """
+
+        #text = "2017-03-10";
+        fontFace = cv2.FONT_HERSHEY_SIMPLEX;
+        fontScale = 1;
+        thickness = 1;
+
         crop_imgs = []
         for p in points:
+            print points
             shape  =[]
             for k in range(len(p)/2):
                 shape.append(p[k])
                 shape.append(p[k+5])
+            print shape
+            lenght_eyes = p[1]-p[0]
+            mouth_to_eyes = p[8]-p[5]
+            # print lenght_eyes
+            # print mouth_to_eyes
+            eye_to_mouth_ratio = lenght_eyes/mouth_to_eyes
+            # text=str(eye_to_mouth_ratio)
+            if eye_to_mouth_ratio < 0.9:
+                print "Not front facing!"
+                break
+            # print lenght_eyes/mouth_to_eyes
 
             if padding > 0:
                 padding = padding
@@ -512,12 +530,14 @@ class MtcnnDetector(object):
             probe_vec = np.matrix([1.0, 0.0]).transpose()
             probe_vec = tran_m * probe_vec
 
-            scale = np.linalg.norm(probe_vec)
-            angle = 180.0 / math.pi * math.atan2(probe_vec[1, 0], probe_vec[0, 0])
+            # scale = np.linalg.norm(probe_vec)
+            scale = 1.0
+            #angle = 180.0 / math.pi * math.atan2(probe_vec[1, 0], probe_vec[0, 0])
+            angle = 0.0
 
             from_center = [(shape[0]+shape[2])/2.0, (shape[1]+shape[3])/2.0]
             to_center = [0, 0]
-            to_center[1] = desired_size * 0.4
+            to_center[1] = desired_size * 0.3
             to_center[0] = desired_size * 0.5
 
             ex = to_center[0] - from_center[0]
@@ -528,6 +548,11 @@ class MtcnnDetector(object):
             rot_mat[1][2] += ey
 
             chips = cv2.warpAffine(img, rot_mat, (desired_size, desired_size))
+
+            #draw date
+            cv2.putText(chips, text, (desired_size/3*2,desired_size-50), fontFace, 1, (255,255,255), thickness, 8 );
+
+
             crop_imgs.append(chips)
 
         return crop_imgs
